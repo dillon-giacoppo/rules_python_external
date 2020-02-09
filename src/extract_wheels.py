@@ -4,7 +4,7 @@ import os
 import subprocess
 import sys
 
-from src import wheel, namespace_pkgs
+from src import wheel, namespace_pkgs, entry_points
 
 BUILD_TEMPLATE = """\
 package(default_visibility = ["//visibility:public"])
@@ -70,13 +70,15 @@ def extract_wheel(whl, directory, extras):
     """
 
     whl.unzip(directory)
+    sanitised_pkg_name = sanitise_name(whl.name())
 
     _setup_namespace_pkg_compatibility(directory)
+    entry_point_names = entry_points.install_entry_points(directory)
 
     with open(os.path.join(directory, "BUILD"), "w") as f:
         f.write(
             BUILD_TEMPLATE.format(
-                name=sanitise_name(whl.name()),
+                name=sanitised_pkg_name,
                 dependencies=",".join(
                     # Python libraries cannot have hyphen https://github.com/bazelbuild/bazel/issues/9171
                     [
@@ -86,6 +88,10 @@ def extract_wheel(whl, directory, extras):
                 ),
             )
         )
+        f.write(entry_points.entry_point_build_file_targets(
+            sanitised_pkg_name,
+            entry_point_names
+        ))
 
 
 def main():
