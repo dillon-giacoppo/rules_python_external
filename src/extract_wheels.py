@@ -53,7 +53,7 @@ def _setup_namespace_pkg_compatibility(extracted_whl_directory):
     if not namespace_pkg_dirs and namespace_pkgs.native_namespace_packages_supported():
         namespace_pkg_dirs = namespace_pkgs.implicit_namespace_packages(
             extracted_whl_directory,
-            ignored_dirnames=[f"{extracted_whl_directory}/bin",],
+            ignored_dirnames=["{}/bin".format(extracted_why_directory),],
         )
 
     for ns_pkg_dir in namespace_pkg_dirs:
