@@ -74,12 +74,22 @@ def main() -> None:
         required=True,
         help="The external repo name to install dependencies. In the format '@{REPO_NAME}'",
     )
+    parser.add_argument(
+        "--precompiled",
+        action="store_true",
+        help="If set, assumes requirements.txt is a full transitive tree of locked dependencies. Enables parallel package fetching.",
+    )
     args = parser.parse_args()
 
+    wheel_cmd = [sys.executable, "-m", "pip", "wheel", "-r", args.requirements]
+    if args.precompiled:
+        # _fetch_packages_parallel(
+        #     requirements_filepath=args.requirements
+        # )
+        wheel_cmd.append("--no-deps")
+
     # Assumes any errors are logged by pip so do nothing. This command will fail if pip fails
-    subprocess.check_output(
-        [sys.executable, "-m", "pip", "wheel", "-r", args.requirements]
-    )
+    subprocess.check_output(wheel_cmd)
 
     extras = requirements.parse_extras(args.requirements)
 

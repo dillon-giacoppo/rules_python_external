@@ -21,16 +21,20 @@ def _pip_repository_impl(rctx):
     ]
     pypath = ":".join([str(p) for p in [rules_root] + thirdparty_roots])
 
+    args = [
+        python_interpreter,
+        "-m",
+        "extract_wheels",
+        "--requirements",
+        rctx.path(rctx.attr.requirements),
+        "--repo",
+        "@%s" % rctx.attr.name,
+    ]
+    if rctx.attr.precompiled:
+        args += ["--precompiled"]
+
     result = rctx.execute(
-        [
-            python_interpreter,
-            "-m",
-            "extract_wheels",
-            "--requirements",
-            rctx.path(rctx.attr.requirements),
-            "--repo",
-            "@%s" % rctx.attr.name,
-        ],
+        args,
         environment={
             # Manually construct the PYTHONPATH since we cannot use the toolchain here
             "PYTHONPATH": pypath
@@ -50,6 +54,7 @@ pip_repository = repository_rule(
         "python_interpreter": attr.string(default="python3"),
         # 600 is documented as default here: https://docs.bazel.build/versions/master/skylark/lib/repository_ctx.html#execute
         "timeout": attr.int(default = 600),
+        "precompiled": attr.bool(default = False),
     },
     implementation=_pip_repository_impl,
 )
