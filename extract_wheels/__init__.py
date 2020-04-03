@@ -39,17 +39,6 @@ def configure_reproducible_wheels() -> None:
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
 
-def _fetch_packages_parallel(requirements_filepath):
-    from pip._internal.req.req_file import parse_requirements
-    from pip._internal.download import PipSession
-    from multiprocessing import Process
-    reqs = parse_requirements(requirements_filepath, session=PipSession())
-
-    # p = Process(target=f, args=('bob',))
-    # p.start()
-    # p.join()
-    raise RuntimeError(list(["{}{}".format(r.req.name, r.req.specifier) for r in reqs]))
-
 
 def main() -> None:
     """Main program.
