@@ -39,16 +39,33 @@ def configure_reproducible_wheels() -> None:
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
 
+
 def _fetch_packages_parallel(requirements_filepath):
+    def dl_wheel(req):
+        return subprocess.run([
+            sys.executable,
+            "-m",
+            "pip",
+            "wheel",
+            "--no-deps",
+            "{}{}".format(req.name, req.specifier)
+        ])
+
     from pip._internal.req.req_file import parse_requirements
     from pip._internal.download import PipSession
-    from multiprocessing import Process
-    reqs = parse_requirements(requirements_filepath, session=PipSession())
+    from multiprocessing import Process, Pool
+    parsed_reqs = parse_requirements(requirements_filepath, session=PipSession())
 
-    # p = Process(target=f, args=('bob',))
-    # p.start()
-    # p.join()
-    raise RuntimeError(list(["{}{}".format(r.req.name, r.req.specifier) for r in reqs]))
+    pool = Pool(processes=5)
+    completed_procs = pool.map(
+        dl_wheel,
+        [r.req for r in parsed_reqs]
+    )
+    # raise RuntimeError(list(["{}{}".format(r.req.name, r.req.specifier) for r in reqs]))
+    failed_procs = [proc for proc in completed_procs if proc.returncode != 0]
+    if failed_procs:
+        raise RuntimeError(failed_procs)
+
 
 
 def main() -> None:
@@ -83,13 +100,12 @@ def main() -> None:
 
     wheel_cmd = [sys.executable, "-m", "pip", "wheel", "-r", args.requirements]
     if args.precompiled:
-        # _fetch_packages_parallel(
-        #     requirements_filepath=args.requirements
-        # )
-        wheel_cmd.append("--no-deps")
-
-    # Assumes any errors are logged by pip so do nothing. This command will fail if pip fails
-    subprocess.check_output(wheel_cmd)
+        _fetch_packages_parallel(
+            requirements_filepath=args.requirements
+        )
+    else:
+        # Assumes any errors are logged by pip so do nothing. This command will fail if pip fails
+        subprocess.check_output(wheel_cmd)
 
     extras = requirements.parse_extras(args.requirements)
 
