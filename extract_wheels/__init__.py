@@ -39,31 +39,30 @@ def configure_reproducible_wheels() -> None:
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
 
+def dl_wheel(req):
+    return subprocess.run([
+        sys.executable,
+        "-m",
+        "pip",
+        "wheel",
+        "--no-deps",
+        "{}{}".format(req.name, req.specifier)
+    ])
 
 def _fetch_packages_parallel(requirements_filepath):
-    def dl_wheel(req):
-        return subprocess.run([
-            sys.executable,
-            "-m",
-            "pip",
-            "wheel",
-            "--no-deps",
-            "{}{}".format(req.name, req.specifier)
-        ])
-
     from pip._internal.req.req_file import parse_requirements
     from pip._internal.download import PipSession
-    from multiprocessing import Process, Pool
+    from concurrent.futures import ThreadPoolExecutor
     parsed_reqs = parse_requirements(requirements_filepath, session=PipSession())
 
-    pool = Pool(processes=5)
-    completed_procs = pool.map(
-        dl_wheel,
-        [r.req for r in parsed_reqs]
-    )
-    # raise RuntimeError(list(["{}{}".format(r.req.name, r.req.specifier) for r in reqs]))
+    with ThreadPoolExecutor(5) as ex:
+        completed_procs = ex.map(
+            dl_wheel,
+            [r.req for r in parsed_reqs]
+        )
     failed_procs = [proc for proc in completed_procs if proc.returncode != 0]
     if failed_procs:
+        # TODO(Jonathon): Obviously don't handle the error in such a poor way.
         raise RuntimeError(failed_procs)
 
 
