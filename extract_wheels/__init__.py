@@ -110,14 +110,13 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    wheel_cmd = [sys.executable, "-m", "pip", "wheel", "-r", args.requirements]
     if args.precompiled:
         _fetch_packages_parallel(
             requirements_filepath=args.requirements
         )
     else:
         # Assumes any errors are logged by pip so do nothing. This command will fail if pip fails
-        subprocess.check_output(wheel_cmd)
+        subprocess.check_output([sys.executable, "-m", "pip", "wheel", "-r", args.requirements])
 
     extras = requirements.parse_extras(args.requirements)
 
