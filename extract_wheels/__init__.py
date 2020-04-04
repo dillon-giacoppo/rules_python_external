@@ -39,26 +39,39 @@ def configure_reproducible_wheels() -> None:
     if "PYTHONHASHSEED" not in os.environ:
         os.environ["PYTHONHASHSEED"] = "0"
 
-def dl_wheel(req):
-    return subprocess.run([
+
+def _dl_wheel(req, additional_wheel_opts):
+    cmd = [
         sys.executable,
         "-m",
         "pip",
         "wheel",
         "--no-deps",
-        "{}{}".format(req.name, req.specifier)
-    ])
+    ] + additional_wheel_opts + ["{}{}".format(req.name, req.specifier)]
+    return subprocess.run(cmd)
+
 
 def _fetch_packages_parallel(requirements_filepath):
     from pip._internal.req.req_file import parse_requirements
     from pip._internal.download import PipSession
     from concurrent.futures import ThreadPoolExecutor
-    parsed_reqs = parse_requirements(requirements_filepath, session=PipSession())
+
+    # Extract 'pip wheel' options (https://pip.pypa.io/en/stable/reference/pip_wheel/#options)
+    # from top of requirements.txt file
+    with open(requirements_filepath, "r") as f:
+        requirements_txt_lines = f.readlines()
+    wheel_cmd_opts = []
+    for l in requirements_txt_lines:
+        if l.startswith("--"):
+            wheel_cmd_opts.extend(l.split())
+
+    parsed_reqs = list(parse_requirements(requirements_filepath, session=PipSession()))
 
     with ThreadPoolExecutor(5) as ex:
         completed_procs = ex.map(
-            dl_wheel,
-            [r.req for r in parsed_reqs]
+            _dl_wheel,
+            [r.req for r in parsed_reqs],
+            [wheel_cmd_opts for _ in range(len(parsed_reqs))],
         )
     failed_procs = [proc for proc in completed_procs if proc.returncode != 0]
     if failed_procs:
