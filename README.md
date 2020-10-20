@@ -1,3 +1,9 @@
+# 🚨 Deprecated
+**This repository has been merged into [bazelbuild/rules_python@v0.1.0](https://github.com/bazelbuild/rules_python/releases/tag/0.1.0) and is no longer maintained.**
+
+`rules_python_external` is now the canonical way to manage Python dependencies for rules_python. For instructions on how to use, see https://github.com/bazelbuild/rules_python#using-the-packaging-rules.
+
+---
 # rules_python_external ![](https://github.com/dillon-giacoppo/rules_python_external/workflows/CI/badge.svg)
 
 Bazel rules to transitively fetch and install Python dependencies from a requirements.txt file.
